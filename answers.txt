@@ -1,0 +1,53 @@
+Q1:
+    2 out of band data
+    1 read/write semantics
+    -
+    3
+
+Embedding commands inside read/write calls breaks the standard 
+semantics of read/write
+
+Q2: 
+    1 kmalloc = physical, contiguous; vmalloc = virtual
+    1 kmalloc is faster but may fail
+    1 remap_*, k/vfree() OR DMA
+    -
+    3
+
+No mention of how this would affect your implementation by changing
+(remap_*(), k/vfree(), etc)
+
+kmalloc() is faster to allocate and free as it doesn't touch the 
+virtual memory subsystem
+
+
+Q3:
+    3 both fds point to same filp
+    2 close only when all fds are closed
+    1 share same buffer
+    -
+    6
+
+Both open files would point to the same filp structure.
+
+Kernel will only call device_release() when all fds have been closed
+
+Q4:
+    2 copy from userspace to kernel
+    2 set up DMA, DMA write
+    2 callback on interrupt
+    1 DMA request, copy
+    1 cache coherency
+    -
+    8
+
+    (capped at 4 for no psuedocode)
+
+You need to copy from userspace first
+(-1)
+
+You need to set up an interrupt for DMA call completion, and initiate
+the request
+
+No mention of cache coherency as the standard read/write system calls 
+may modify the buffer while a DMA request is active.

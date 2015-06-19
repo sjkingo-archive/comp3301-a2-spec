@@ -1,0 +1,7 @@
+env = Environment(
+    CFLAGS=['-Wall', '-Wextra', '-Wshadow', '-g', '-std=gnu99'],
+)
+import os
+prog_sources = [f for f in os.listdir('.') if f.startswith('test_') and f.endswith('.c')]
+for c in prog_sources:
+    env.Program(c[:-2], [c, 'common.c', 'marks.c'])

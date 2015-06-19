@@ -1,0 +1,4 @@
+env = Environment(
+    CFLAGS=['-Wall', '-Wextra', '-g', '-std=gnu99'],
+)
+env.Program('smode', 'smode.c')

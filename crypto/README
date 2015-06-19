@@ -1,0 +1,116 @@
+COMP3301 A2 memory dump of behaviour/implementation
+===================================================
+
+Errata
+------
+Device driver should print out major and minor number when init'd in the format:
+
+  mknod /dev/crypto c MAJOR MINOR
+
+Driver must not leak memory during running, or when unloaded
+
+Must compile with no warnings (which is easy since a lot are raised to errors)
+
+Can be split over multiple files (this is recommended)
+
+Be aware of allocating buffers on the stack, this is kernel land and you have a very
+limited stack space (use kmalloc() if you can't get around this)
+
+kmalloc() vs vmalloc()
+
+Useful functions/files
+----------------------
+kmalloc(size, GFP_KERNEL) and kfree()
+Linked list implementation described in Ch 11 (Data types in kernel) of Linux Device Drivers 3rd
+copy_from_user()
+copy_to_user()
+Documentation/ioctl/ioctl-number.txt
+Documentation/spinlocks.txt (esp. #2 - reader-writer)
+
+Primitives
+----------
+ - open()
+ - close()
+ - read()
+ - write()
+ - ioctl()
+* - mmap()
+
+ioctls
+------
+Must use "new" kernel 2.6 way of assigning numbers - using _IO*. #define's
+must be placed in ioctl.h so test program can use them. Magic should be 0x3301
+ - create
+ - delete
+ - attach
+ - detach
+* - set write mode (encrypt/decrypt)
+   - if encrypt: buffer encrypts on write() of cleartext, read() yields ciphertext, buffer stores ciphertext
+   - if decrypt: buffer decrypts on write() of ciphertext, read() yields cleartext, buffer stores cleartext
+
+Buffers
+-------
+ - Each buffer has an unsigned long integer id (starting at 1)
+ - ids are not to be reused, even if buffers are deleted
+ - Number of buffers is bounded only by range of id's data type - LONG_MAX
+    (implement using linked list)
+ - Created through an ioctl() call which returns the id
+ - Deleted through ioctl() call
+ - Can attach and detach to a buffer through ioctl() - need to do this before
+    read() and write()
+ - Reference counting to ensure a buffer does not get removed while it's still
+   attached to
+* - Need to lock buffer when writing - spinlock
+* - Circular buffer
+
+Open device file
+----------------
+ - Device -> buffer is a one-to-many relationship (that is, an open fd can only
+    be attached to one buffer, but one buffer can have many fds attached to it)
+ - Kernel needs to store which buffer a file is attached to (if any)
+ - read()/write() can only occur once attached through ioctl() call
+
+*Student's test program
+-----------------------
+Students must write a test program that behaves in the following manner:
+ - program should open /dev/crypto for RW
+ - fork()
+ - p1:
+    - creates a buffer
+    - sets mode on this buffer to encrypt
+    - attaches to buffer
+    - writes plaintext to buffer
+    - detaches from buffer
+    - sends buffer id across IPC to p2
+    - exits
+ - p2:
+    - creates a buffer
+    - sets mode on this buffer to decrypt
+    - waits for p1 to send it buffer id
+    - attaches to buffer given by p1
+    - reads encrypted text from p1's buffer
+    - detaches fro p1's buffer
+    - attaches to its own buffer
+    - writes encrypted text to buffer
+    - reads back plaintext
+    - detaches from buffer
+    - deletes p1's buffer
+    - deletes its own buffer
+    - exits
+
+Marker's test program
+---------------------
+This will test multiple usage cases, including forking and opening more than
+one device at a time
+
+Errors
+------
+-EINVAL
+
+Links
+-----
+http://tldp.org/LDP/lkmpg/2.6/html/lkmpg.html#AEN569 (basic char driver)
+http://www.captain.at/howto-linux-device-driver-template-skeleton.php (ioctl)
+http://www.scs.ch/~frey/linux/memorymap.html (mmap example)
+http://lwn.net/Kernel/LDD3/ (linux device drivers 3rd ed)
+man errno

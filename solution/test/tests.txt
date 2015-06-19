@@ -1,0 +1,5 @@
+TEST_EMPTY  open, read nothing, close
+            open, write, close
+TEST_RW     open, write, read, close
+            open, write, write, read, close
+            open, close, open, write, read, close
